@@ -3,7 +3,9 @@ use CGI;
 use CGI::Carp qw(warningsToBrowser fatalsToBrowser);
 $query = new CGI;                        # create new CGI object
 use BerkeleyDB;
-$today=localtime();
+my $today=localtime();
+my $year = 1900 + (localtime)[5];
+
 $data_path	="/usr/local/web/ucjeps_data/ucjeps_data";
 $dbm_file="$data_path/NORRIS_TREATMENTS";
         tie %NORRIS_treatment, "BerkeleyDB::Hash",
@@ -33,7 +35,7 @@ function initialize() {
 var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
 
 
-  var kmlLayer = new google.maps.KmlLayer("http://herbaria4.herb.berkeley.edu/moss_coords/${kml_taxon}.kml?$$", { });
+  var kmlLayer = new google.maps.KmlLayer("http://ucjeps.berkeley.edu/CA_moss_eflora/moss_coords/${kml_taxon}.kml?$$", { });
   kmlLayer.setMap(map);
 
 }
@@ -115,16 +117,16 @@ $species_name{$name}=$filename;
                 	$image= qq{<a href="$cpurl"><IMG src="$url" width="200"></a>};
         	}
 
-		if($value=~ s!<PSW>.*(http://herbaria4[^ ]+) *(.*)</PSW>\n!!){
+		if($value=~ s!<PSW>.*(http://ucjeps[^ ]+) *(.*)</PSW>\n!!){
 			$url=$1;
 			$line_caption=$2;
 			unless($line_caption=~s/[Cc]aption: //){
 				$line_caption="";
 			}
-			$line_image=qq{<center><img src="http://herbaria4.herb.berkeley.edu/drawings/$species_name{$taxon}" border=1 align="center" width="200"> </center>};
+			$line_image=qq{<center><img src="http://ucjeps.berkeley.edu/CA_moss_eflora/drawings/$species_name{$taxon}" border=1 align="center" width="200"> </center>};
 		}
 		elsif($species_name{$taxon}){
-			$line_image=qq{<center><img src="http://herbaria4.herb.berkeley.edu/drawings/$species_name{$taxon}" border=1 align="center" width="200"> </center>};
+			$line_image=qq{<center><img src="http://ucjeps.berkeley.edu/CA_moss_eflora/drawings/$species_name{$taxon}" border=1 align="center" width="200"> </center>};
 		}
 		else{
 			$line_image="";
@@ -354,12 +356,18 @@ EOP
 }
 }
 print <<EOP;
-Copyright &copy; 2013 Regents of the University of California 
-<br>
-We encourage links to these pages, but the content may not be downloaded for reposting, repackaging, redistributing, or sale in any form, without written permission from the University and Jepson Herbaria.
-<br>
-Generated $today
-
+<!--Begin footer-->
+<table width="100%" id="footer">
+  <tr>
+    <td height="18" class="banner"><img src="/common/images/common_spacer.gif" alt="" width="1" height="1" border="0" /></td>
+  </tr>
+  <tr>
+    <td height="20"><span class="copyrightText"><a href="http://ucjeps.berkeley.edu/main/copyright.html"> Copyright</a> &copy; $year Regents of the University of California
+<br>We encourage links to these pages, but the content may not be downloaded for reposting, repackaging, redistributing, or sale in any form, without written permission from The University and Jepson Herbaria.</span></td>
+  </tr>
+</table>
+Generated: $today
+<!--End footer-->
 </body>
 </html>
 EOP

@@ -2,6 +2,10 @@
 use CGI;
 $query = new CGI;                        # create new CGI object
 use BerkeleyDB;
+
+my $today=localtime();
+my $year = 1900 + (localtime)[5];
+
 $data_path	="/usr/local/web/ucjeps_data/ucjeps_data";
 $dbm_file="$data_path/MOSS_GENUS_KEY_HASH";
         tie %GEN_KEYS, "BerkeleyDB::Hash",
@@ -165,10 +169,18 @@ else{
 print "You must select one of the genus names, thanks.";
 }
 print <<EOP;
-Copyright &copy; 2013 Regents of the University of California 
-<br>
-We encourage links to these pages, but the content may not be downloaded for reposting, repackaging, redistributing, or sale in any form, without written permission from the University and Jepson Herbaria.
-
+<!--Begin footer-->
+<table width="100%" id="footer">
+  <tr>
+    <td height="18" class="banner"><img src="/common/images/common_spacer.gif" alt="" width="1" height="1" border="0" /></td>
+  </tr>
+  <tr>
+    <td height="20"><span class="copyrightText"><a href="http://ucjeps.berkeley.edu/main/copyright.html"> Copyright</a> &copy; $year Regents of the University of California
+<br>We encourage links to these pages, but the content may not be downloaded for reposting, repackaging, redistributing, or sale in any form, without written permission from The University and Jepson Herbaria.</span></td>
+  </tr>
+</table>
+Generated: $today
+<!--End footer-->
 </body>
 </html>
 EOP
