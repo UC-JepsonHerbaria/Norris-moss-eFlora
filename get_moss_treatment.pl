@@ -1,24 +1,28 @@
 #!/usr/bin/perl
 use CGI;
+use CGI::Carp qw(warningsToBrowser fatalsToBrowser);
 $query = new CGI;                        # create new CGI object
 use BerkeleyDB;
-$dbm_file="/Users/rlmoe/MOSS_FLORA/NORRIS_TREATMENTS";
+$today=localtime();
+$data_path	="/usr/local/web/ucjeps_data/ucjeps_data";
+$dbm_file="$data_path/NORRIS_TREATMENTS";
         tie %NORRIS_treatment, "BerkeleyDB::Hash",
                 -Filename => $dbm_file,
                 -Flags => DB_CREATE
-        or die "Cannot open file $filename: $! $BerkeleyDB::Error\n" ;
+        or die "Cannot open file $dbm_file: $! $BerkeleyDB::Error\n" ;
 
 if ($query->param('taxon')){
 	$taxon=$query->param('taxon');
 ($kml_taxon=$taxon)=~s/ /_/;
 ($genus=$taxon)=~s/ .*//;
-$genus_key="http://herbaria4.herb.berkeley.edu/general.html#$genus";
+$genus_key="/general.html#$genus";
 	print $query->header;
 print <<EOP;
 <html>
 <head>
 <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Tier 1 treatment for $taxon</title>
+<title>California Moss eFlora treatment for $taxon</title>
+<meta name="keywords" content="mosses, bryophytes, moss flora. Dan Norris" >
 <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
 <script type="text/javascript">
 function initialize() {
@@ -26,7 +30,8 @@ function initialize() {
     mapTypeId: google.maps.MapTypeId.TERRAIN
   }
 
-  var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+
 
   var kmlLayer = new google.maps.KmlLayer("http://herbaria4.herb.berkeley.edu/moss_coords/${kml_taxon}.kml?$$", { });
   kmlLayer.setMap(map);
@@ -63,7 +68,8 @@ $ital{$_}++;
 s/([a-z]) .*/$1/;
 $ital{$_}++;
 }
-open(IN,"/Users/rlmoe/MOSS_FLORA/scripts/MontalvoTable.csv") || die;
+$dbm_file="$data_path/MontalvoTable.csv";
+open(IN,"$dbm_file") || die "couldnt open $dbm_file\n";
 while(<IN>){
 chomp;
 ($name,$null,$filename)=split(/\t/);
@@ -72,20 +78,20 @@ $species_name{$name}=$filename;
 
 
 #print "Start";
-	open(IN, "/Users/rlmoe/MOSS_FLORA/scripts/tnoan_moss.out") || print "tnoan wont open\n";
+	open(IN, "$data_path/tnoan_moss.out") || print "tnoan wont open\n";
 	while(<IN>){
 		chomp;
 		($code,$name)=split(/\t/);
 		$NTC{$name}=$code;
 	}
 	$/="";
-	$dbm_file="/Users/rlmoe/MOSS_FLORA/MOSS_CAT";
-	$lit_file="/Users/rlmoe/MOSS_FLORA/MOSS_LIT";
+	$dbm_file="$data_path/MOSS_CAT";
+	$lit_file="$data_path/MOSS_LIT";
 	use BerkeleyDB;
     	tie %MOSS_CAT, "BerkeleyDB::Hash",
                 -Filename => $dbm_file,
 		-Flags => RDONLY
-        or print "Cannot open file $filename: $! $BerkeleyDB::Error\n" ;
+        or print "Cannot open file $dbm_file: $! $BerkeleyDB::Error\n" ;
     	tie %MOSS_LIT, "BerkeleyDB::Hash",
                 -Filename => $lit_file,
 		-Flags => RDONLY
@@ -93,11 +99,11 @@ $species_name{$name}=$filename;
 	if($NTC{$taxon}){
 		if($MOSS_CAT{$NTC{$taxon}} || $MOSS_CAT{$taxon}){
 		$value=$MOSS_CAT{$NTC{$taxon}} || $MOSS_CAT{$taxon};
-		if($value=~ s!<PSW>.*(http://cal[^ ]+) *(.*)</PSW>\n!!){
+		if($value=~ s!<PSW>.*(http://cal[^\s]+)\s*(.*)</PSW>\n!!){
 			$url=$1;
 			$caption=$2;
 			unless($caption=~s/[Cc]aption: //){
-				$caption="";
+				$caption=".....";
 			}
 			if($url=~m!/(\d\d\d\d)_(\d\d\d\d)/(\d\d\d\d)/(\d\d\d\d)!){
 				$cpurl="http://calphotos.berkeley.edu/cgi/img_query?enlarge=$1+$2+$3+$4";
@@ -115,16 +121,16 @@ $species_name{$name}=$filename;
 			unless($line_caption=~s/[Cc]aption: //){
 				$line_caption="";
 			}
-			$line_image=qq{<center><a href="$url"><img src="/drawings/$species_name{$taxon}" border=1 align="center" width="200"></a> </center>};
+			$line_image=qq{<center><img src="http://herbaria4.herb.berkeley.edu/drawings/$species_name{$taxon}" border=1 align="center" width="200"> </center>};
 		}
 		elsif($species_name{$taxon}){
-			$line_image=qq{<center><a href="/drawings/$species_name{$taxon}"><img src="/drawings/$species_name{$taxon}" border=1 align="center" width="200"></a> </center>};
+			$line_image=qq{<center><img src="http://herbaria4.herb.berkeley.edu/drawings/$species_name{$taxon}" border=1 align="center" width="200"> </center>};
 		}
 		else{
 			$line_image="";
 		}
 if($value=~s/<([a-z0-9]{10})>//){
-$maplink=qq{<img src="http://ucjeps.berkeley.edu/cgi-bin/draw_tiny2.pl?$1" border="0" alt="map of distribution">};
+$maplink=qq{<a href="/cgi-bin/display_map_in_frame.pl?hcode=$1&taxon=$taxon"><img src="http://ucjeps.berkeley.edu/cgi-bin/draw_tiny2.pl?$1" border="0" alt="map of distribution"></a>};
 }
 else{
 $maplink="";
@@ -163,11 +169,21 @@ if($NORRIS_treatment{$kml_taxon}){
 $Norris_treatment= "<blockquote>$NORRIS_treatment{$kml_taxon}</blockquote>";
 $Norris_treatment=~s/ ([A-Z]\.)([a-z][a-z][a-z])/ $1 $2/g;
 $Norris_treatment=~s/ ([A-Z][a-z]+ [a-z]+)/$ital{$1}?" <i>$1<\/i>":" $1"/ge;
+$Norris_treatment=~s/ ([A-Z][a-z]+ [a-z]+)/$ital{$1}?" <i>$1<\/i>":" $1"/ge;
 $Norris_treatment=~s/ ([A-Z]\. [a-z]+)/$ital{$1}?" <i>$1<\/i>":" $1"/ge;
 $Norris_treatment=~s/ ([A-Z][a-z]+)/$ital{$1}?" <i>$1<\/i>":" $1"/ge;
+$Norris_treatment=~s/([A-Z][a-z]+ [a-z]+)/$ital{$1}?"<i>$1<\/i>":" $1"/ge;
 }
 else{
-$Norris_treatment= "Species treatment still being edited.";
+$Norris_treatment= "$kml_taxon: Species treatment still being edited.";
+}
+foreach($Norris_treatment){
+s/\303\244/&auml;/g;
+s/\303\266/&ouml;/g;
+s/\303\274/&uuml;/g;
+s/\303\251/&eacute;/g;
+s/\303\261/&ntilde;/g;
+s/\342\200\231/'/g;
 }
 			print<<TREATMENT;
 
@@ -217,7 +233,7 @@ $Norris_treatment= "Species treatment still being edited.";
 
     <tr>
 
-    <td colspan="6"><img src="http://ucjeps.berkeley.edu/common/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
+    <td colspan="6"><img src="http://ucjeps.berkeley.edu/common/images/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
   </tr>
   </tbody></table>
   <!-- End banner -->
@@ -233,13 +249,13 @@ $Norris_treatment= "Species treatment still being edited.";
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <a href="http://ucjeps.berkeley.edu/main/sitemap.html" class="horizMenuActive">Site Map</a>	
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <a href="moss_intro.html" class="horizMenuActive">Home</a>	
+        <a href="/" class="horizMenuActive">Home</a>	
     </td>
 
 <td>
   </td></tr>
    <tr>
-       <td colspan="6" bgcolor="#9FBFFF"><img src="http://ucjeps.berkeley.edu/common/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
+       <td colspan="6" bgcolor="#9FBFFF"><img src="http://ucjeps.berkeley.edu/common/images/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
      </tr>
  </tbody></table>
 
@@ -253,16 +269,22 @@ $Norris_treatment= "Species treatment still being edited.";
 <center>
        <span class="pageName"><font size="5">California Moss eFlora</font></span>
 </center>
-  <p class="bodyText"><a href="http://herbaria4.herb.berkeley.edu/moss_intro.html">Home</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_gl.html">List of Genera</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/general.html">Key to Keys</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_appendix.html">Accepted Names</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_appendix_IV.html">Synonyms</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_beginner.html">For Beginners</a> &middot;
-  <a href="http://ucjeps.berkeley.edu/IJM_geography.html">Subdivisions of CA</a> &middot;
-  <a href="http://ucjeps.berkeley.edu/IJM.html">Jepson eFlora for CA Vascular Plants</a>
-<br>
-$previous / $next&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; See also ....
+$previous 
+<font size="2">
+/
+</font>
+$next
+  <p class="bodyText"><a href="/CA_moss_eflora/">Home</a> &middot;
+      <a href="/CA_moss_eflora/moss_gl.html">List of Genera</a> &middot;
+      <a href="/CA_moss_eflora/general.html">Key to Keys</a> &middot;
+      <a href="/CA_moss_eflora/moss_appendix.html">Accepted Names</a> &middot;
+      <a href="/CA_moss_eflora/moss_appendix_IV.html">Synonyms</a> &middot;
+      <a href="/CA_moss_eflora/moss_beginner.html">For Beginners</a> &middot;
+See also ....
+  <a href="http://ucjeps.berkeley.edu/IJM_geography.html">Subdivisions of CA</a>
+&nbsp;&mdash;&nbsp;
+  <a href="http://ucjeps.berkeley.edu/IJM.html">Jepson eFlora for CA Vascular Plants</a> 
+&nbsp;&mdash;&nbsp;
 <a href="http://ucjeps.berkeley.edu/cgi-bin/get_bex.pl?county=&source=All&taxon_name=$taxon">Specimen records</a>
 &nbsp;&mdash;&nbsp;
 <a href="#elev_map">Elevation by latitude plot</a>
@@ -275,6 +297,7 @@ $previous / $next&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; See also ....
 &nbsp;&mdash;&nbsp;
 <a href="http://scholar.google.com/scholar?hl=en&lr=&q=$taxon+&btnG=Search">Google Scholar</a>
 </P>
+</td></tr>
 
 $values[0]
 <table align="center" BGCOLOR="#eeeeee" cellspacing=10 width="20%">
@@ -304,6 +327,7 @@ $Norris_treatment
 		<div id="map_canvas"></div>
 <!-- </td>
 		<td> -->
+&nbsp; &nbsp;
 		<a name="elev_map">
 		<img src="http://ucjeps.berkeley.edu/cgi-bin/map_BEX_elev.pl?&taxon_name=$taxon"> </a>
 		<h3>Elevation by latitude plot for $taxon<br>&nbsp;&nbsp;&nbsp;in California</h3>
@@ -330,6 +354,12 @@ EOP
 }
 }
 print <<EOP;
+Copyright &copy; 2013 Regents of the University of California 
+<br>
+We encourage links to these pages, but the content may not be downloaded for reposting, repackaging, redistributing, or sale in any form, without written permission from the University and Jepson Herbaria.
+<br>
+Generated $today
+
 </body>
 </html>
 EOP

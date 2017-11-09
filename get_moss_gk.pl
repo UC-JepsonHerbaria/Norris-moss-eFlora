@@ -2,11 +2,12 @@
 use CGI;
 $query = new CGI;                        # create new CGI object
 use BerkeleyDB;
-$dbm_file="MOSS_GENUS_KEY_HASH";
+$data_path	="/usr/local/web/ucjeps_data/ucjeps_data";
+$dbm_file="$data_path/MOSS_GENUS_KEY_HASH";
         tie %GEN_KEYS, "BerkeleyDB::Hash",
                 -Filename => $dbm_file,
                 -Flags => DB_CREATE
-        or die "Cannot open file $filename: $! $BerkeleyDB::Error\n" ;
+        or die "Cannot open file $dbm_file: $! $BerkeleyDB::Error\n" ;
 
 if ($query->param('genus')){
 	$taxon=$query->param('genus');
@@ -32,8 +33,11 @@ if ($query->param('genus')){
 #</head>
 #EOP
 if($GEN_KEYS{$taxon}){
+#<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>UC Herbarium: Moss eFlora Tier 1 key to $taxon</title> 
 print <<EOP;
-<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>UC Herbarium: Moss eFlora Tier 1 key to $taxon</title> 
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>California Moss eFlora key to $taxon</title> 
+
 <link href="http://ucjeps.berkeley.edu/common/styles/style_main_tjm2.css" rel="stylesheet" type="text/css">
 </head>
 
@@ -76,7 +80,7 @@ print <<EOP;
 
     <tr>
 
-    <td colspan="6"><img src="http://ucjeps.berkeley.edu/common/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
+    <td colspan="6"><img src="http://ucjeps.berkeley.edu/common/images/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
   </tr>
   </tbody></table>
   <!-- End banner -->
@@ -98,7 +102,7 @@ print <<EOP;
 <td>
   </td></tr>
    <tr>
-       <td colspan="6" bgcolor="#9FBFFF"><img src="http://ucjeps.berkeley.edu/common/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
+       <td colspan="6" bgcolor="#9FBFFF"><img src="http://ucjeps.berkeley.edu/common/images/common_spacer.gif" alt="" width="1" height="1" border="0"></td>
      </tr>
  </tbody></table>
 
@@ -122,21 +126,34 @@ print <<EOP;
 </table>
 <p></p><table border="0">
 <tbody><tr><td>
-      <a href="http://herbaria4.herb.berkeley.edu/revision_history"> Jan  1 2013 </a> &middot;
-  <p class="bodyText"><a href="http://herbaria4.herb.berkeley.edu/moss_intro.html">Home</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_gl.html">List of Genera</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/general.html">Key to Keys</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_appendix.html">Accepted Names</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_appendix_IV.html">Synonyms</a> &middot;
-      <a href="http://herbaria4.herb.berkeley.edu/moss_beginner.html">For Beginners</a> &middot;
+      <a href=""> Jan  1 2013 </a> &middot;
+  <p class="bodyText"><a href="/CA_moss_eflora">Home</a> &middot;
+      <a href="/CA_moss_eflora/moss_gl.html">List of Genera</a> &middot;
+      <a href="/CA_moss_eflora/general.html">Key to Keys</a> &middot;
+      <a href="/CA_moss_eflora/moss_appendix.html">Accepted Names</a> &middot;
+      <a href="/CA_moss_eflora/moss_appendix_IV.html">Synonyms</a> &middot;
+      <a href="/CA_moss_eflora/moss_beginner.html">For Beginners</a> &middot;
   <a href="http://ucjeps.berkeley.edu/IJM_geography.html">Subdivisions of CA</a> &middot;
-  <a href="http://ucjeps.berkeley.edu/IJM.html">Jepson eFlora for CA Vascular Plants</a></p>
+  <a href="http://ucjeps.berkeley.edu/IJM.html">Jepson eFlora for CA Vascular Plants</a><br>
+<a href="mailto:paul.wilson\@csun.edu?subject=$taxon">Mail a comment to Paul Wilson</a>
+</p>
 </td>
 </tr>
 </table>
 
 EOP
-print $GEN_KEYS{$taxon};
+$ToBePrinted= $GEN_KEYS{$taxon};
+foreach($ToBePrinted){
+s/\303\205/&Aring;/g;
+s/\303\244/&auml;/g;
+s/\303\266/&ouml;/g;
+s/\303\274/&uuml;/g;
+s/\303\251/&eacute;/g;
+s/\303\261/&ntilde;/g;
+s/\342\200\231/'/g;
+s/\342\200\223/&mdash;/g;
+}
+print $ToBePrinted;
 }
 else{
 	print $query->header;
@@ -147,3 +164,11 @@ else{
 	print $query->header;
 print "You must select one of the genus names, thanks.";
 }
+print <<EOP;
+Copyright &copy; 2013 Regents of the University of California 
+<br>
+We encourage links to these pages, but the content may not be downloaded for reposting, repackaging, redistributing, or sale in any form, without written permission from the University and Jepson Herbaria.
+
+</body>
+</html>
+EOP
